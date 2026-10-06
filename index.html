@@ -75,7 +75,7 @@
   <header>
     <div>
       <h1><span class="dot"></span>Webinário · Performance</h1>
-      <div class="sub" id="periodLabel"></div>
+      <div class="sub"><span id="periodLabel"></span> · <span id="live">conectando…</span></div>
     </div>
     <div class="filters">
       <button class="chip on" data-p="today">Hoje</button>
@@ -139,10 +139,33 @@ const fmt=n=>n.toLocaleString('pt-BR');
 const pct=(a,b)=>b?((a/b)*100).toFixed(1).replace('.',',')+'%':'—';
 const br=s=>s.split('-').reverse().join('/');
 
-// Fonte de dados: um objeto por dia (AAAA-MM-DD). Hoje ainda sem lançamentos.
-const data={
+// Dados lançados manualmente (prints da aula etc.). Um objeto por dia (AAAA-MM-DD).
+const manual={
   '2026-10-05':{enviadas:2107,convite:560,visitas:171,aula:150,pitch:100,oferta:64,clique:11,vendas:10}
 };
+// Dados ao vivo (webhooks) -> métricas do dashboard. Quando existem, valem mais que o manual.
+const MAPA={pam_venda:'enviadas',convite_entregue:'convite',visita:'visitas',aula:'aula',pitch:'pitch',oferta:'oferta',clique:'clique',alh_venda:'vendas'};
+let data={};
+function montar(live){
+  data={};
+  Object.keys(manual).forEach(d=>data[d]={...manual[d]});
+  Object.keys(live||{}).forEach(d=>{
+    data[d]=data[d]||{};
+    Object.keys(MAPA).forEach(k=>{const n=+live[d][k]||0;if(n>0)data[d][MAPA[k]]=n});
+  });
+}
+montar();
+async function carregar(){
+  try{
+    const r=await fetch('/api/dados',{cache:'no-store'});
+    if(!r.ok)throw 0;
+    const j=await r.json();
+    montar(j.dias);
+    $('live').textContent='● ao vivo · '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    $('live').style.color='var(--neon)';
+    render();
+  }catch(e){$('live').textContent='sem conexão ao vivo';$('live').style.color='var(--muted)'}
+}
 
 let period='today';
 const addDays=(s,n)=>{const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return iso(d)};
@@ -238,6 +261,7 @@ document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
 });
 $('from').onchange=$('to').onchange=render;
 render();
+carregar();setInterval(carregar,30000);
 </script>
 </body>
 </html>
