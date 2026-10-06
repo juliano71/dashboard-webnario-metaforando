@@ -141,7 +141,11 @@ let period='today';
 const addDays=(s,n)=>{const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return iso(d)};
 
 function range(){
-  if(period==='today')return[TODAY,TODAY];
+  if(period==='today'){
+    // sem lançamento hoje: mostra o último dia com dados
+    const last=Object.keys(data).filter(d=>d<=TODAY).sort().pop()||TODAY;
+    return[last,last];
+  }
   if(period==='yesterday'){const y=addDays(TODAY,-1);return[y,y]}
   if(period==='7')return[addDays(TODAY,-6),TODAY];
   if(period==='30')return[addDays(TODAY,-29),TODAY];
@@ -159,7 +163,7 @@ function totals(a,b){
 function render(){
   const[a,b]=range();
   const{t,days}=totals(a,b);
-  $('periodLabel').textContent=(a===b?(a===TODAY?'Hoje · ':'')+br(a):br(a)+' → '+br(b))+' · '+days.length+' dia(s) com dados';
+  $('periodLabel').textContent=(a===b?(period==='today'?'Hoje · último dado de ':'')+br(a):br(a)+' → '+br(b))+' · '+days.length+' dia(s) com dados';
 
   // cards
   const hero=['vendas','clique'];
