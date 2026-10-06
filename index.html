@@ -28,7 +28,7 @@
   .range{display:none;gap:6px;align-items:center;color:var(--muted);font-size:13px}
   .range.show{display:flex}
   .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-  @media(max-width:900px){#conv{grid-template-columns:repeat(2,1fr)!important}}
+  @media(max-width:900px){#conv{grid-template-columns:repeat(2,1fr)!important}#tot{grid-template-columns:1fr!important}}
   .card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:16px;padding:18px;position:relative;overflow:hidden;transition:.25s}
   .card:hover{border-color:rgba(57,255,20,.5);transform:translateY(-2px)}
   .card .lb{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
@@ -105,11 +105,18 @@
       <h2>Vendas por dia</h2>
       <div class="panel">
         <div class="sparkwrap" id="spark"></div>
-        <table style="margin-top:14px">
-          <thead><tr><th>Data</th><th>Visitas</th><th>Aula</th><th>Oferta</th><th>ALH</th></tr></thead>
-          <tbody id="tbody"></tbody>
-        </table>
       </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Conversão geral do Upsell <span style="text-transform:none;letter-spacing:0;font-weight:400"> · ALH vendido sobre PAM vendido, todos os dias</span></h2>
+    <div class="grid" id="tot" style="grid-template-columns:repeat(3,1fr)"></div>
+    <div class="panel" style="margin-top:14px">
+      <table>
+        <thead><tr><th>Data</th><th>Vendas PAM</th><th>Vendas ALH</th><th>Conversão</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
     </div>
   </div>
 </div>
@@ -198,10 +205,14 @@ function render(){
     return`<div class="row"><div class="n">${m.l}</div><div class="bar"><i style="width:${w}%"></i></div><div class="p"><b>${fmt(t[m.k])}</b><span>${prev!==null?step+' da etapa anterior':'início'}</span></div></div>`;
   }).join('');
 
-  // table: last days within filter (or last 14 overall)
+  // visão total (todos os dias) + tabela diária
   const all=Object.keys(data).sort().reverse();
-  $('tbody').innerHTML=all.slice(0,14).map(d=>{
-    const x=data[d];return`<tr data-d="${d}" ><td>${br(d)}${d===TODAY?' · hoje':''}</td><td>${fmt(+x.visitas||0)}</td><td>${fmt(+x.aula||0)}</td><td>${fmt(+x.oferta||0)}</td><td>${fmt(+x.vendas||0)}</td></tr>`;
+  const sum=k=>all.reduce((n,d)=>n+(+data[d][k]||0),0);
+  const tp=sum('enviadas'),ta=sum('vendas');
+  $('tot').innerHTML=[['Vendas PAM (total)',fmt(tp),0],['Vendas ALH (total)',fmt(ta),0],['Conversão geral',pct(ta,tp),1]]
+    .map(c=>`<div class="card ${c[2]?'hero':''}"><div class="lb">${c[0]}</div><div class="v">${c[1]}</div></div>`).join('');
+  $('tbody').innerHTML=all.map(d=>{
+    const x=data[d];return`<tr><td>${br(d)}${d===TODAY?' · hoje':''}</td><td>${fmt(+x.enviadas||0)}</td><td>${fmt(+x.vendas||0)}</td><td>${pct(+x.vendas||0,+x.enviadas||0)}</td></tr>`;
   }).join('');
 
   spark(all.slice(0,14).reverse());
