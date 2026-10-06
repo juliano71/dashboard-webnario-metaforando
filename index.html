@@ -27,12 +27,12 @@
   input[type=date]:focus,input[type=number]:focus{outline:none;border-color:var(--neon)}
   .range{display:none;gap:6px;align-items:center;color:var(--muted);font-size:13px}
   .range.show{display:flex}
-  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-  @media(max-width:900px){#conv{grid-template-columns:repeat(2,1fr)!important}#tot{grid-template-columns:1fr!important}}
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+  @media(max-width:900px){#conv,#cards{grid-template-columns:repeat(2,1fr)!important}#disp,#tot{grid-template-columns:1fr!important}}
   .card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:16px;padding:18px;position:relative;overflow:hidden;transition:.25s}
   .card:hover{border-color:rgba(57,255,20,.5);transform:translateY(-2px)}
   .card .lb{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
-  .card .v{font-size:34px;font-weight:800;margin:10px 0 6px;letter-spacing:-.5px}
+  .card .v{font-size:30px;font-weight:800;margin:10px 0 6px;letter-spacing:-.5px}
   .card .r{font-size:12px;color:var(--muted)}
   .card .r b{color:var(--neon);font-weight:600}
   .card.hero{border-color:rgba(57,255,20,.55);box-shadow:inset 0 0 40px var(--neon-dim),var(--neon-glow)}
@@ -88,7 +88,15 @@
     </div>
   </header>
 
-  <div class="grid" id="cards"></div>
+  <div class="section" style="margin-top:0">
+    <h2>Disparos · tempo real</h2>
+    <div class="grid" id="disp" style="grid-template-columns:repeat(3,1fr)"></div>
+  </div>
+
+  <div class="section">
+    <h2>Webinário</h2>
+    <div class="grid" id="cards" style="grid-template-columns:repeat(3,1fr)"></div>
+  </div>
 
   <div class="section">
     <h2>Conversões</h2>
@@ -114,7 +122,7 @@
     <div class="grid" id="tot" style="grid-template-columns:repeat(3,1fr)"></div>
     <div class="panel" style="margin-top:14px">
       <table>
-        <thead><tr><th>Data</th><th>Vendas PAM</th><th>Vendas ALH</th><th>Conversão</th></tr></thead>
+        <thead><tr><th>Data</th><th>Compradores PAM</th><th>Vendas ALH</th><th>Conversão</th></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
     </div>
@@ -123,8 +131,9 @@
 
 <script>
 const METRICS=[
-  {k:'enviadas',l:'Vendas PAM (front)'},
-  {k:'convite',l:'Receberam o convite da aula'},
+  {k:'enviadas',l:'Compradores PAM · convite disparado'},
+  {k:'confirmou',l:'Confirmaram presença'},
+  {k:'amanha',l:'Amanhã consigo',fora:true},
   {k:'visitas',l:'Visitas na página'},
   {k:'aula',l:'Participaram da aula'},
   {k:'pitch',l:'Estavam no pitch'},
@@ -132,26 +141,30 @@ const METRICS=[
   {k:'clique',l:'Clicaram no botão da oferta'},
   {k:'vendas',l:'Vendas ALH (upsell)'}
 ];
+const DISP=['enviadas','confirmou','amanha'];
 const KEY='webinario_dash_v1';
 const iso=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*6e4);return z.toISOString().slice(0,10)};
-const TODAY=iso(new Date());
+// dia do webinário: começa às 18h do dia anterior (horário de Brasília)
+const TODAY=new Date(Date.now()+6*3600e3).toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
 const fmt=n=>n.toLocaleString('pt-BR');
 const pct=(a,b)=>b?((a/b)*100).toFixed(1).replace('.',',')+'%':'—';
 const br=s=>s.split('-').reverse().join('/');
 
 // Dados lançados manualmente (prints da aula etc.). Um objeto por dia (AAAA-MM-DD).
 const manual={
-  '2026-10-05':{enviadas:2107,convite:560,visitas:171,aula:150,pitch:100,oferta:64,clique:11,vendas:10}
+  '2026-10-05':{enviadas:2107,visitas:171,aula:150,pitch:100,oferta:64,clique:11,vendas:10},
+  // 05/10 18h até 06/10 ~11:46 (export do WhatsApp); o que chegar depois soma pelos webhooks
+  '2026-10-06':{enviadas:35,confirmou:5,amanha:4}
 };
-// Dados ao vivo (webhooks) -> métricas do dashboard. Quando existem, valem mais que o manual.
-const MAPA={pam_venda:'enviadas',convite_entregue:'convite',visita:'visitas',aula:'aula',pitch:'pitch',oferta:'oferta',clique:'clique',alh_venda:'vendas'};
+// Webhooks (ao vivo) -> métricas do dashboard. Somam por cima do manual.
+const MAPA={convite_enviado:'enviadas',confirmou_presenca:'confirmou',amanha_consigo:'amanha',visita:'visitas',aula:'aula',pitch:'pitch',oferta:'oferta',clique:'clique',alh_venda:'vendas'};
 let data={};
 function montar(live){
   data={};
   Object.keys(manual).forEach(d=>data[d]={...manual[d]});
   Object.keys(live||{}).forEach(d=>{
     data[d]=data[d]||{};
-    Object.keys(MAPA).forEach(k=>{const n=+live[d][k]||0;if(n>0)data[d][MAPA[k]]=n});
+    Object.keys(MAPA).forEach(k=>{const n=+live[d][k]||0;if(n>0)data[d][MAPA[k]]=(data[d][MAPA[k]]||0)+n});
   });
 }
 montar();
@@ -196,24 +209,24 @@ function render(){
   $('periodLabel').textContent=(a===b?(period==='today'?'Hoje · último dado de ':'')+br(a):br(a)+' → '+br(b))+' · '+days.length+' dia(s) com dados';
 
   // cards
-  const hero=['vendas','clique'];
-  $('cards').innerHTML=METRICS.map((m,i)=>{
-    const prev=i>0?METRICS[i-1]:null;
-    let rate='';
-    if(m.k==='convite')rate=`<b>${pct(t.convite,t.enviadas)}</b> das vendas PAM`;
-    else if(m.k==='visitas')rate=`<b>${pct(t.visitas,t.convite)}</b> dos convites`;
-    else if(m.k==='aula')rate=`<b>${pct(t.aula,t.visitas)}</b> das visitas`;
-    else if(m.k==='pitch')rate=`<b>${pct(t.pitch,t.aula)}</b> da aula`;
-    else if(m.k==='oferta')rate=`<b>${pct(t.oferta,t.pitch)}</b> do pitch`;
-    else if(m.k==='clique')rate=`<b>${pct(t.clique,t.oferta)}</b> da oferta`;
-    else if(m.k==='vendas')rate=`<b>${pct(t.vendas,t.clique)}</b> dos cliques · <b>${pct(t.vendas,t.enviadas)}</b> do PAM`;
-    else rate='compradores do front';
-    return`<div class="card ${hero.includes(m.k)&&m.k==='vendas'?'hero':''}"><div class="lb">${m.l}</div><div class="v">${fmt(t[m.k])}</div><div class="r">${rate}</div></div>`;
-  }).join('');
+  const rate=k=>({
+    enviadas:'compradores PAM que receberam o convite',
+    confirmou:`<b>${pct(t.confirmou,t.enviadas)}</b> dos compradores`,
+    amanha:`<b>${pct(t.amanha,t.enviadas)}</b> dos compradores`,
+    visitas:`<b>${pct(t.visitas,t.enviadas)}</b> dos compradores`,
+    aula:`<b>${pct(t.aula,t.visitas)}</b> das visitas`,
+    pitch:`<b>${pct(t.pitch,t.aula)}</b> da aula`,
+    oferta:`<b>${pct(t.oferta,t.pitch)}</b> do pitch`,
+    clique:`<b>${pct(t.clique,t.oferta)}</b> da oferta`,
+    vendas:`<b>${pct(t.vendas,t.clique)}</b> dos cliques · <b>${pct(t.vendas,t.enviadas)}</b> do PAM`
+  })[k];
+  const card=m=>`<div class="card ${m.k==='vendas'?'hero':''}"><div class="lb">${m.l}</div><div class="v">${fmt(t[m.k])}</div><div class="r">${rate(m.k)}</div></div>`;
+  $('disp').innerHTML=METRICS.filter(m=>DISP.includes(m.k)).map(card).join('');
+  $('cards').innerHTML=METRICS.filter(m=>!DISP.includes(m.k)).map(card).join('');
 
   const cv=[
     ['PAM → ALH (geral)',pct(t.vendas,t.enviadas),`${fmt(t.vendas)} de ${fmt(t.enviadas)} compradores`,1],
-    ['PAM → Convite',pct(t.convite,t.enviadas),`${fmt(t.convite)} de ${fmt(t.enviadas)}`],
+    ['PAM → Presença',pct(t.confirmou,t.enviadas),`${fmt(t.confirmou)} de ${fmt(t.enviadas)}`],
     ['Aula → Oferta',pct(t.oferta,t.aula),`${fmt(t.oferta)} de ${fmt(t.aula)}`],
     ['Oferta → Venda ALH',pct(t.vendas,t.oferta),`${fmt(t.vendas)} de ${fmt(t.oferta)}`]
   ];
@@ -221,8 +234,9 @@ function render(){
 
   // funnel (from visitas down; enviadas/convite shown relative to enviadas)
   const max=t.enviadas||1;
-  $('funnel').innerHTML=METRICS.map((m,i)=>{
-    const prev=i>0?t[METRICS[i-1].k]:null;
+  const FUN=METRICS.filter(m=>!m.fora);
+  $('funnel').innerHTML=FUN.map((m,i)=>{
+    const prev=i>0?t[FUN[i-1].k]:null;
     const w=Math.max(t[m.k]/max*100,t[m.k]?1.5:0);
     const step=prev!==null?pct(t[m.k],prev):'100%';
     return`<div class="row"><div class="n">${m.l}</div><div class="bar"><i style="width:${w}%"></i></div><div class="p"><b>${fmt(t[m.k])}</b><span>${prev!==null?step+' da etapa anterior':'início'}</span></div></div>`;
@@ -232,7 +246,7 @@ function render(){
   const all=Object.keys(data).sort().reverse();
   const sum=k=>all.reduce((n,d)=>n+(+data[d][k]||0),0);
   const tp=sum('enviadas'),ta=sum('vendas');
-  $('tot').innerHTML=[['Vendas PAM (total)',fmt(tp),0],['Vendas ALH (total)',fmt(ta),0],['Conversão geral',pct(ta,tp),1]]
+  $('tot').innerHTML=[['Compradores PAM (total)',fmt(tp),0],['Vendas ALH (total)',fmt(ta),0],['Conversão geral',pct(ta,tp),1]]
     .map(c=>`<div class="card ${c[2]?'hero':''}"><div class="lb">${c[0]}</div><div class="v">${c[1]}</div></div>`).join('');
   $('tbody').innerHTML=all.map(d=>{
     const x=data[d];return`<tr><td>${br(d)}${d===TODAY?' · hoje':''}</td><td>${fmt(+x.enviadas||0)}</td><td>${fmt(+x.vendas||0)}</td><td>${pct(+x.vendas||0,+x.enviadas||0)}</td></tr>`;

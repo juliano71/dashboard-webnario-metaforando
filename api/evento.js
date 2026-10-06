@@ -2,16 +2,19 @@
 //   POST /api/evento?metrica=aula&key=SEGREDO   (body padrão do webhook, com contact_id)
 // Guarda só data + métrica + contact_id (sem nome/e-mail/telefone).
 const { pipeline } = require('./_redis');
+const { BLOQUEADOS } = require('./_config');
 
 const METRICAS = [
   'pam_venda',          // compra aprovada do PAM (front)
   'convite_enviado',    // tentativa de envio do convite da aula
   'convite_entregue',   // convite da aula entregue
-  'confirmou_presenca',
+  'confirmou_presenca', // clicou "Sim, Vou Estar Lá"
+  'amanha_consigo',     // clicou "Amanhã Consigo"
   'visita', 'aula', 'pitch', 'oferta', 'clique', 'alh_venda',
 ];
 
-const hojeBR = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+// Dia do webinário: vai das 18h do dia anterior até as 18h do dia (horário de Brasília).
+const hojeBR = () => new Date(Date.now() + 6 * 3600e3).toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -31,6 +34,8 @@ module.exports = async (req, res) => {
 
   const id = q.contact_id || b.contact_id || b.contactId || (b.contact && b.contact.id);
   if (!id) return res.status(400).json({ ok: false, erro: 'contact_id ausente' });
+
+  if (BLOQUEADOS.includes(String(id))) return res.status(200).json({ ok: true, ignorado: 'contato de teste' });
 
   const data = /^\d{4}-\d{2}-\d{2}$/.test(q.data || b.data || '') ? (q.data || b.data) : hojeBR();
 
