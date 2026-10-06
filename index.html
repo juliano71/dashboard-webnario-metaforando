@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard Webinário</title>
+<style>
+  :root{
+    --bg:#000; --panel:#0a0d0a; --panel2:#0f140f; --line:#1a241a;
+    --neon:#39ff14; --neon-dim:rgba(57,255,20,.14); --neon-glow:0 0 18px rgba(57,255,20,.35);
+    --text:#eaffea; --muted:#6f8a6f; --warn:#ff4d4d;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh;
+    background-image:radial-gradient(ellipse at 50% -10%,rgba(57,255,20,.08),transparent 55%)}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px}
+  header{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;margin-bottom:26px}
+  h1{font-size:22px;font-weight:700;letter-spacing:.3px;display:flex;align-items:center;gap:10px}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--neon);box-shadow:var(--neon-glow);animation:p 2s infinite}
+  @keyframes p{50%{opacity:.4}}
+  .sub{color:var(--muted);font-size:13px;margin-top:4px}
+  .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .chip{background:var(--panel);border:1px solid var(--line);color:var(--muted);padding:8px 14px;border-radius:999px;font-size:13px;cursor:pointer;transition:.2s;font-family:inherit}
+  .chip:hover{color:var(--text);border-color:var(--neon)}
+  .chip.on{color:#000;background:var(--neon);border-color:var(--neon);font-weight:600;box-shadow:var(--neon-glow)}
+  input[type=date]{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:7px 10px;border-radius:10px;font-size:13px;font-family:inherit;color-scheme:dark}
+  input[type=date]:focus,input[type=number]:focus{outline:none;border-color:var(--neon)}
+  .range{display:none;gap:6px;align-items:center;color:var(--muted);font-size:13px}
+  .range.show{display:flex}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:16px;padding:18px;position:relative;overflow:hidden;transition:.25s}
+  .card:hover{border-color:rgba(57,255,20,.5);transform:translateY(-2px)}
+  .card .lb{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+  .card .v{font-size:34px;font-weight:800;margin:10px 0 6px;letter-spacing:-.5px}
+  .card .r{font-size:12px;color:var(--muted)}
+  .card .r b{color:var(--neon);font-weight:600}
+  .card.hero{border-color:rgba(57,255,20,.55);box-shadow:inset 0 0 40px var(--neon-dim),var(--neon-glow)}
+  .card.hero .v{color:var(--neon);text-shadow:0 0 16px rgba(57,255,20,.5)}
+  .section{margin-top:28px}
+  .section h2{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;font-weight:600}
+  .funnel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px}
+  .row{display:grid;grid-template-columns:190px 1fr 120px;gap:14px;align-items:center;margin-bottom:12px}
+  .row:last-child{margin-bottom:0}
+  .row .n{font-size:13px}
+  .bar{height:30px;background:#0d120d;border-radius:8px;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:8px;background:linear-gradient(90deg,rgba(57,255,20,.25),var(--neon));box-shadow:var(--neon-glow);transition:width .6s cubic-bezier(.2,.8,.2,1)}
+  .row .p{text-align:right;font-size:13px}
+  .row .p b{display:block;font-size:15px}
+  .row .p span{color:var(--muted);font-size:11px}
+  .drop{color:var(--warn)!important}
+  .cols{display:grid;grid-template-columns:1.2fr 1fr;gap:14px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:10px 8px;text-align:right;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.6px}
+  tr.sel td{color:var(--neon)}
+  tbody tr{cursor:pointer}
+  tbody tr:hover td{background:rgba(57,255,20,.05)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;overflow-x:auto}
+  .form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .form label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+  .form input{width:100%;background:#000;border:1px solid var(--line);color:var(--text);padding:9px 10px;border-radius:8px;font-size:14px;font-family:inherit;color-scheme:dark}
+  .form .full{grid-column:1/-1}
+  .btn{background:var(--neon);color:#000;border:0;padding:11px;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;font-family:inherit;box-shadow:var(--neon-glow)}
+  .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line);box-shadow:none;font-weight:500}
+  .btn.ghost:hover{color:var(--warn);border-color:var(--warn)}
+  .sparkwrap{height:150px;margin-top:6px}
+  svg{width:100%;height:100%;display:block}
+  .empty{color:var(--muted);text-align:center;padding:30px;font-size:14px}
+  @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.cols{grid-template-columns:1fr}.row{grid-template-columns:110px 1fr 90px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1><span class="dot"></span>Webinário · Performance</h1>
+      <div class="sub" id="periodLabel"></div>
+    </div>
+    <div class="filters">
+      <button class="chip on" data-p="today">Hoje</button>
+      <button class="chip" data-p="yesterday">Ontem</button>
+      <button class="chip" data-p="7">7 dias</button>
+      <button class="chip" data-p="30">30 dias</button>
+      <button class="chip" data-p="all">Tudo</button>
+      <button class="chip" data-p="custom">Personalizado</button>
+      <div class="range" id="range"><input type="date" id="from"> até <input type="date" id="to"></div>
+    </div>
+  </header>
+
+  <div class="grid" id="cards"></div>
+
+  <div class="section">
+    <h2>Funil de conversão</h2>
+    <div class="funnel" id="funnel"></div>
+  </div>
+
+  <div class="section cols">
+    <div>
+      <h2>Vendas por dia</h2>
+      <div class="panel">
+        <div class="sparkwrap" id="spark"></div>
+        <table style="margin-top:14px">
+          <thead><tr><th>Data</th><th>Visitas</th><th>Aula</th><th>Oferta</th><th>Vendas</th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <h2>Lançar / editar dia</h2>
+      <div class="panel">
+        <div class="form" id="form"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const METRICS=[
+  {k:'enviadas',l:'Mensagens enviadas'},
+  {k:'convite',l:'Receberam o convite'},
+  {k:'visitas',l:'Visitas na página'},
+  {k:'aula',l:'Participaram da aula'},
+  {k:'pitch',l:'Estavam no pitch'},
+  {k:'oferta',l:'Estavam na oferta'},
+  {k:'clique',l:'Clicaram no botão da oferta'},
+  {k:'vendas',l:'Vendas'}
+];
+const KEY='webinario_dash_v1';
+const iso=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*6e4);return z.toISOString().slice(0,10)};
+const TODAY=iso(new Date());
+const fmt=n=>n.toLocaleString('pt-BR');
+const pct=(a,b)=>b?((a/b)*100).toFixed(1).replace('.',',')+'%':'—';
+const br=s=>s.split('-').reverse().join('/');
+
+let data={};
+try{data=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
+if(!Object.keys(data).length){
+  data[TODAY]={enviadas:2107,convite:560,visitas:171,aula:150,pitch:100,oferta:64,clique:11,vendas:10};
+  save();
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}}
+
+let period='today',selDay=TODAY;
+const addDays=(s,n)=>{const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return iso(d)};
+
+function range(){
+  if(period==='today')return[TODAY,TODAY];
+  if(period==='yesterday'){const y=addDays(TODAY,-1);return[y,y]}
+  if(period==='7')return[addDays(TODAY,-6),TODAY];
+  if(period==='30')return[addDays(TODAY,-29),TODAY];
+  if(period==='all'){const ks=Object.keys(data).sort();return[ks[0]||TODAY,ks[ks.length-1]||TODAY]}
+  return[$('from').value||TODAY,$('to').value||TODAY];
+}
+const $=id=>document.getElementById(id);
+
+function totals(a,b){
+  const t=Object.fromEntries(METRICS.map(m=>[m.k,0]));let days=[];
+  Object.keys(data).sort().forEach(d=>{if(d>=a&&d<=b){days.push(d);METRICS.forEach(m=>t[m.k]+=+data[d][m.k]||0)}});
+  return{t,days};
+}
+
+function render(){
+  const[a,b]=range();
+  const{t,days}=totals(a,b);
+  $('periodLabel').textContent=(a===b?(a===TODAY?'Hoje · ':'')+br(a):br(a)+' → '+br(b))+' · '+days.length+' dia(s) com dados';
+
+  // cards
+  const hero=['vendas','clique'];
+  $('cards').innerHTML=METRICS.map((m,i)=>{
+    const prev=i>0?METRICS[i-1]:null;
+    let rate='';
+    if(m.k==='convite')rate=`<b>${pct(t.convite,t.enviadas)}</b> das mensagens`;
+    else if(m.k==='visitas')rate=`<b>${pct(t.visitas,t.convite)}</b> dos convites`;
+    else if(m.k==='aula')rate=`<b>${pct(t.aula,t.visitas)}</b> das visitas`;
+    else if(m.k==='pitch')rate=`<b>${pct(t.pitch,t.aula)}</b> da aula`;
+    else if(m.k==='oferta')rate=`<b>${pct(t.oferta,t.pitch)}</b> do pitch`;
+    else if(m.k==='clique')rate=`<b>${pct(t.clique,t.oferta)}</b> da oferta`;
+    else if(m.k==='vendas')rate=`<b>${pct(t.vendas,t.clique)}</b> dos cliques · <b>${pct(t.vendas,t.aula)}</b> da aula`;
+    else rate='topo do funil';
+    return`<div class="card ${hero.includes(m.k)&&m.k==='vendas'?'hero':''}"><div class="lb">${m.l}</div><div class="v">${fmt(t[m.k])}</div><div class="r">${rate}</div></div>`;
+  }).join('');
+
+  // funnel (from visitas down; enviadas/convite shown relative to enviadas)
+  const max=t.enviadas||1;
+  $('funnel').innerHTML=METRICS.map((m,i)=>{
+    const prev=i>0?t[METRICS[i-1].k]:null;
+    const w=Math.max(t[m.k]/max*100,t[m.k]?1.5:0);
+    const step=prev!==null?pct(t[m.k],prev):'100%';
+    return`<div class="row"><div class="n">${m.l}</div><div class="bar"><i style="width:${w}%"></i></div><div class="p"><b>${fmt(t[m.k])}</b><span>${prev!==null?step+' da etapa anterior':'início'}</span></div></div>`;
+  }).join('');
+
+  // table: last days within filter (or last 14 overall)
+  const all=Object.keys(data).sort().reverse();
+  $('tbody').innerHTML=all.slice(0,14).map(d=>{
+    const x=data[d];return`<tr data-d="${d}" class="${d===selDay?'sel':''}"><td>${br(d)}${d===TODAY?' · hoje':''}</td><td>${fmt(+x.visitas||0)}</td><td>${fmt(+x.aula||0)}</td><td>${fmt(+x.oferta||0)}</td><td>${fmt(+x.vendas||0)}</td></tr>`;
+  }).join('');
+  document.querySelectorAll('#tbody tr').forEach(tr=>tr.onclick=()=>{selDay=tr.dataset.d;render();renderForm()});
+
+  spark(all.slice(0,14).reverse());
+}
+
+function spark(ds){
+  const el=$('spark');
+  if(!ds.length){el.innerHTML='<div class="empty">Sem dados</div>';return}
+  const W=600,H=150,p=24;const vals=ds.map(d=>+data[d].vendas||0);const mx=Math.max(...vals,1);
+  const bw=(W-p*2)/ds.length;
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`+
+    ds.map((d,i)=>{const h=(vals[i]/mx)*(H-p-18);const x=p+i*bw+bw*.2;
+      return`<rect x="${x}" y="${H-p-h}" width="${bw*.6}" height="${Math.max(h,2)}" rx="3" fill="#39ff14" opacity="${d===selDay?1:.55}"/>
+      <text x="${x+bw*.3}" y="${H-p-h-5}" fill="#eaffea" font-size="11" text-anchor="middle">${vals[i]}</text>
+      <text x="${x+bw*.3}" y="${H-6}" fill="#6f8a6f" font-size="10" text-anchor="middle">${d.slice(8)}/${d.slice(5,7)}</text>`}).join('')+`</svg>`;
+}
+
+function renderForm(){
+  const x=data[selDay]||{};
+  $('form').innerHTML=`<div class="full"><label>Data</label><input type="date" id="fd" value="${selDay}"></div>`+
+    METRICS.map(m=>`<div><label>${m.l}</label><input type="number" min="0" id="f_${m.k}" value="${x[m.k]??''}"></div>`).join('')+
+    `<button class="btn full" id="sv">Salvar dia</button><button class="btn ghost full" id="rm">Excluir dia</button>`;
+  $('fd').onchange=()=>{selDay=$('fd').value;render();renderForm()};
+  $('sv').onclick=()=>{const d=$('fd').value;if(!d)return;
+    data[d]=Object.fromEntries(METRICS.map(m=>[m.k,+$('f_'+m.k).value||0]));selDay=d;save();render();renderForm()};
+  $('rm').onclick=()=>{if(data[selDay]&&confirm('Excluir '+br(selDay)+'?')){delete data[selDay];save();render();renderForm()}};
+}
+
+document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
+  document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');
+  period=c.dataset.p;$('range').classList.toggle('show',period==='custom');
+  if(period==='custom'){$('from').value=$('from').value||addDays(TODAY,-6);$('to').value=$('to').value||TODAY}
+  render();
+});
+$('from').onchange=$('to').onchange=render;
+render();renderForm();
+</script>
+</body>
+</html>
