@@ -118,7 +118,7 @@
   </div>
 
   <div class="section">
-    <h2>Conversão geral do Upsell <span style="text-transform:none;letter-spacing:0;font-weight:400"> · ALH vendido sobre PAM vendido, todos os dias</span></h2>
+    <h2>Conversão geral do Upsell <span style="text-transform:none;letter-spacing:0;font-weight:400"> · base retroativa + dias com dados da aula</span></h2>
     <div class="grid" id="tot" style="grid-template-columns:repeat(3,1fr)"></div>
     <div class="panel" style="margin-top:14px">
       <table>
@@ -151,6 +151,8 @@ const pct=(a,b)=>b?((a/b)*100).toFixed(1).replace('.',',')+'%':'—';
 const br=s=>s.split('-').reverse().join('/');
 
 // Dados lançados manualmente (prints da aula etc.). Um objeto por dia (AAAA-MM-DD).
+// Compradores PAM anteriores a 05/10 (base retroativa). Geral = base + dias com dados da aula.
+const BASE_RETRO=2101;
 const manual={
   '2026-10-05':{enviadas:37,visitas:171,aula:150,pitch:100,oferta:64,clique:11,vendas:10},
   // 05/10 18h até 06/10 ~11:46 (export do WhatsApp); o que chegar depois soma pelos webhooks
@@ -250,12 +252,12 @@ function render(){
   const all=Object.keys(data).sort().reverse();
   const sum=k=>all.reduce((n,d)=>n+(+data[d][k]||0),0);
   const fech=all.filter(d=>fechado(data[d]));
-  const tp=fech.reduce((n,d)=>n+(+data[d].enviadas||0),0),ta=fech.reduce((n,d)=>n+(+data[d].vendas||0),0);
-  $('tot').innerHTML=[['Compradores PAM (total)',fmt(tp),0],['Vendas ALH (total)',fmt(ta),0],['Conversão geral',pct(ta,tp),1]]
+  const tp=BASE_RETRO+fech.reduce((n,d)=>n+(+data[d].enviadas||0),0),ta=fech.reduce((n,d)=>n+(+data[d].vendas||0),0);
+  $('tot').innerHTML=[['Compradores PAM (base + dias)',fmt(tp),0],['Vendas ALH (total)',fmt(ta),0],['Conversão geral',pct(ta,tp),1]]
     .map(c=>`<div class="card ${c[2]?'hero':''}"><div class="lb">${c[0]}</div><div class="v">${c[1]}</div></div>`).join('');
   $('tbody').innerHTML=all.map(d=>{
     const x=data[d];return`<tr><td>${br(d)}${d===TODAY?' · hoje':''}</td><td>${fmt(+x.enviadas||0)}</td><td>${fmt(+x.vendas||0)}</td><td>${fechado(x)?pct(+x.vendas||0,+x.enviadas||0):'—'}</td></tr>`;
-  }).join('');
+  }).join('')+`<tr><td>Base retroativa</td><td>${fmt(BASE_RETRO)}</td><td>—</td><td>—</td></tr>`;
 
   spark(all.slice(0,14).reverse());
 }
