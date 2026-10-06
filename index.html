@@ -28,6 +28,7 @@
   .range{display:none;gap:6px;align-items:center;color:var(--muted);font-size:13px}
   .range.show{display:flex}
   .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  @media(max-width:900px){#conv{grid-template-columns:repeat(2,1fr)!important}}
   .card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:16px;padding:18px;position:relative;overflow:hidden;transition:.25s}
   .card:hover{border-color:rgba(57,255,20,.5);transform:translateY(-2px)}
   .card .lb{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
@@ -91,6 +92,11 @@
   <div class="grid" id="cards"></div>
 
   <div class="section">
+    <h2>Conversões</h2>
+    <div class="grid" id="conv" style="grid-template-columns:repeat(4,1fr)"></div>
+  </div>
+
+  <div class="section">
     <h2>Funil de conversão</h2>
     <div class="funnel" id="funnel"></div>
   </div>
@@ -101,7 +107,7 @@
       <div class="panel">
         <div class="sparkwrap" id="spark"></div>
         <table style="margin-top:14px">
-          <thead><tr><th>Data</th><th>Visitas</th><th>Aula</th><th>Oferta</th><th>Vendas</th></tr></thead>
+          <thead><tr><th>Data</th><th>Visitas</th><th>Aula</th><th>Oferta</th><th>ALH</th></tr></thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
@@ -117,14 +123,14 @@
 
 <script>
 const METRICS=[
-  {k:'enviadas',l:'Mensagens enviadas'},
-  {k:'convite',l:'Receberam o convite'},
+  {k:'enviadas',l:'Vendas PAM (front)'},
+  {k:'convite',l:'Receberam o convite ALH'},
   {k:'visitas',l:'Visitas na página'},
   {k:'aula',l:'Participaram da aula'},
   {k:'pitch',l:'Estavam no pitch'},
   {k:'oferta',l:'Estavam na oferta'},
   {k:'clique',l:'Clicaram no botão da oferta'},
-  {k:'vendas',l:'Vendas'}
+  {k:'vendas',l:'Vendas ALH (upsell)'}
 ];
 const KEY='webinario_dash_v1';
 const iso=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*6e4);return z.toISOString().slice(0,10)};
@@ -170,16 +176,24 @@ function render(){
   $('cards').innerHTML=METRICS.map((m,i)=>{
     const prev=i>0?METRICS[i-1]:null;
     let rate='';
-    if(m.k==='convite')rate=`<b>${pct(t.convite,t.enviadas)}</b> das mensagens`;
+    if(m.k==='convite')rate=`<b>${pct(t.convite,t.enviadas)}</b> das vendas PAM`;
     else if(m.k==='visitas')rate=`<b>${pct(t.visitas,t.convite)}</b> dos convites`;
     else if(m.k==='aula')rate=`<b>${pct(t.aula,t.visitas)}</b> das visitas`;
     else if(m.k==='pitch')rate=`<b>${pct(t.pitch,t.aula)}</b> da aula`;
     else if(m.k==='oferta')rate=`<b>${pct(t.oferta,t.pitch)}</b> do pitch`;
     else if(m.k==='clique')rate=`<b>${pct(t.clique,t.oferta)}</b> da oferta`;
-    else if(m.k==='vendas')rate=`<b>${pct(t.vendas,t.clique)}</b> dos cliques · <b>${pct(t.vendas,t.aula)}</b> da aula`;
-    else rate='topo do funil';
+    else if(m.k==='vendas')rate=`<b>${pct(t.vendas,t.clique)}</b> dos cliques · <b>${pct(t.vendas,t.enviadas)}</b> do PAM`;
+    else rate='compradores do front';
     return`<div class="card ${hero.includes(m.k)&&m.k==='vendas'?'hero':''}"><div class="lb">${m.l}</div><div class="v">${fmt(t[m.k])}</div><div class="r">${rate}</div></div>`;
   }).join('');
+
+  const cv=[
+    ['PAM → ALH (geral)',pct(t.vendas,t.enviadas),`${fmt(t.vendas)} de ${fmt(t.enviadas)} compradores`,1],
+    ['PAM → Convite',pct(t.convite,t.enviadas),`${fmt(t.convite)} de ${fmt(t.enviadas)}`],
+    ['Aula → Oferta',pct(t.oferta,t.aula),`${fmt(t.oferta)} de ${fmt(t.aula)}`],
+    ['Oferta → Venda ALH',pct(t.vendas,t.oferta),`${fmt(t.vendas)} de ${fmt(t.oferta)}`]
+  ];
+  $('conv').innerHTML=cv.map(c=>`<div class="card ${c[3]?'hero':''}"><div class="lb">${c[0]}</div><div class="v">${c[1]}</div><div class="r">${c[2]}</div></div>`).join('');
 
   // funnel (from visitas down; enviadas/convite shown relative to enviadas)
   const max=t.enviadas||1;
