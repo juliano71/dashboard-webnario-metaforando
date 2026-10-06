@@ -152,7 +152,7 @@ const br=s=>s.split('-').reverse().join('/');
 
 // Dados lançados manualmente (prints da aula etc.). Um objeto por dia (AAAA-MM-DD).
 const manual={
-  '2026-10-05':{enviadas:2107,visitas:171,aula:150,pitch:100,oferta:64,clique:11,vendas:10},
+  '2026-10-05':{enviadas:37,visitas:171,aula:150,pitch:100,oferta:64,clique:11,vendas:10},
   // 05/10 18h até 06/10 ~11:46 (export do WhatsApp); o que chegar depois soma pelos webhooks
   '2026-10-06':{enviadas:35,confirmou:5,amanha:4}
 };
@@ -197,6 +197,7 @@ function range(){
 }
 const $=id=>document.getElementById(id);
 
+const fechado=x=>(+x.aula||0)>0||(+x.vendas||0)>0;
 function totals(a,b){
   const t=Object.fromEntries(METRICS.map(m=>[m.k,0]));let days=[];
   Object.keys(data).sort().forEach(d=>{if(d>=a&&d<=b){days.push(d);METRICS.forEach(m=>t[m.k]+=+data[d][m.k]||0)}});
@@ -209,6 +210,7 @@ function render(){
   $('periodLabel').textContent=(a===b?(period==='today'?'Hoje · último dado de ':'')+br(a):br(a)+' → '+br(b))+' · '+days.length+' dia(s) com dados';
 
   // cards
+  const pc2=t=>{const b=days.reduce((n,d)=>n+(fechado(data[d])?(+data[d].enviadas||0):0),0);return b?pct(t.vendas,b):'—'};
   const rate=k=>({
     enviadas:'compradores PAM que receberam o convite',
     confirmou:`<b>${pct(t.confirmou,t.enviadas)}</b> dos compradores`,
@@ -218,14 +220,16 @@ function render(){
     pitch:`<b>${pct(t.pitch,t.aula)}</b> da aula`,
     oferta:`<b>${pct(t.oferta,t.pitch)}</b> do pitch`,
     clique:`<b>${pct(t.clique,t.oferta)}</b> da oferta`,
-    vendas:`<b>${pct(t.vendas,t.clique)}</b> dos cliques · <b>${pct(t.vendas,t.enviadas)}</b> do PAM`
+    vendas:`<b>${pct(t.vendas,t.clique)}</b> dos cliques · <b>${pc2(t)}</b> do PAM`
   })[k];
   const card=m=>`<div class="card ${m.k==='vendas'?'hero':''}"><div class="lb">${m.l}</div><div class="v">${fmt(t[m.k])}</div><div class="r">${rate(m.k)}</div></div>`;
   $('disp').innerHTML=METRICS.filter(m=>DISP.includes(m.k)).map(card).join('');
   $('cards').innerHTML=METRICS.filter(m=>!DISP.includes(m.k)).map(card).join('');
 
+  // base do PAM só nos dias que já têm dados da aula
+  const pc=days.reduce((r,d)=>{if(fechado(data[d])){r.ok=true;r.pam+=+data[d].enviadas||0}return r},{ok:false,pam:0});
   const cv=[
-    ['PAM → ALH (geral)',pct(t.vendas,t.enviadas),`${fmt(t.vendas)} de ${fmt(t.enviadas)} compradores`,1],
+    ['PAM → ALH (geral)',pc.ok?pct(t.vendas,pc.pam):'—',pc.ok?`${fmt(t.vendas)} de ${fmt(pc.pam)} compradores PAM`:'aguardando dados da aula',1],
     ['PAM → Presença',pct(t.confirmou,t.enviadas),`${fmt(t.confirmou)} de ${fmt(t.enviadas)}`],
     ['Aula → Oferta',pct(t.oferta,t.aula),`${fmt(t.oferta)} de ${fmt(t.aula)}`],
     ['Oferta → Venda ALH',pct(t.vendas,t.oferta),`${fmt(t.vendas)} de ${fmt(t.oferta)}`]
@@ -245,11 +249,12 @@ function render(){
   // visão total (todos os dias) + tabela diária
   const all=Object.keys(data).sort().reverse();
   const sum=k=>all.reduce((n,d)=>n+(+data[d][k]||0),0);
-  const tp=sum('enviadas'),ta=sum('vendas');
+  const fech=all.filter(d=>fechado(data[d]));
+  const tp=fech.reduce((n,d)=>n+(+data[d].enviadas||0),0),ta=fech.reduce((n,d)=>n+(+data[d].vendas||0),0);
   $('tot').innerHTML=[['Compradores PAM (total)',fmt(tp),0],['Vendas ALH (total)',fmt(ta),0],['Conversão geral',pct(ta,tp),1]]
     .map(c=>`<div class="card ${c[2]?'hero':''}"><div class="lb">${c[0]}</div><div class="v">${c[1]}</div></div>`).join('');
   $('tbody').innerHTML=all.map(d=>{
-    const x=data[d];return`<tr><td>${br(d)}${d===TODAY?' · hoje':''}</td><td>${fmt(+x.enviadas||0)}</td><td>${fmt(+x.vendas||0)}</td><td>${pct(+x.vendas||0,+x.enviadas||0)}</td></tr>`;
+    const x=data[d];return`<tr><td>${br(d)}${d===TODAY?' · hoje':''}</td><td>${fmt(+x.enviadas||0)}</td><td>${fmt(+x.vendas||0)}</td><td>${fechado(x)?pct(+x.vendas||0,+x.enviadas||0):'—'}</td></tr>`;
   }).join('');
 
   spark(all.slice(0,14).reverse());
