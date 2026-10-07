@@ -13,8 +13,8 @@ const METRICAS = [
   'visita', 'aula', 'pitch', 'oferta', 'clique', 'alh_venda',
 ];
 
-// Dia do webinário: vai das 18h do dia anterior até as 18h do dia (horário de Brasília).
-const hojeBR = () => new Date(Date.now() + 6 * 3600e3).toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+// Dia = data do calendário em Brasília (vira à meia-noite).
+const hojeBR = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');

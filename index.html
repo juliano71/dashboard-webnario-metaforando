@@ -144,8 +144,8 @@ const METRICS=[
 const DISP=['enviadas','confirmou','amanha'];
 const KEY='webinario_dash_v1';
 const iso=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*6e4);return z.toISOString().slice(0,10)};
-// dia do webinário: começa às 18h do dia anterior (horário de Brasília)
-const TODAY=new Date(Date.now()+6*3600e3).toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
+// Dia = data do calendário em Brasília (vira à meia-noite).
+const TODAY=new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
 const fmt=n=>n.toLocaleString('pt-BR');
 const pct=(a,b)=>b?((a/b)*100).toFixed(1).replace('.',',')+'%':'—';
 const br=s=>s.split('-').reverse().join('/');
@@ -207,7 +207,7 @@ function totals(a,b){
 function render(){
   const[a,b]=range();
   const{t,days}=totals(a,b);
-  $('periodLabel').textContent=(a===b?(period==='today'?'Hoje · último dado de ':'')+br(a):br(a)+' → '+br(b))+' · '+days.length+' dia(s) com dados';
+  $('periodLabel').textContent=(a===b?(period==='today'?(a===TODAY?'Hoje · ':'Hoje · último dado de '):'')+br(a):br(a)+' → '+br(b))+' · '+days.length+' dia(s) com dados';
 
   // cards
   const pc2=t=>{const b=days.reduce((n,d)=>n+(fechado(data[d])?(+data[d].enviadas||0):0),0);return b?pct(t.vendas,b):'—'};
