@@ -1,8 +1,8 @@
 // Recebe eventos do fluxo (GoHighLevel/n8n). Uma URL por métrica:
 //   POST /api/evento?metrica=aula&key=SEGREDO   (body padrão do webhook, com contact_id)
-// Guarda só data + métrica + contact_id (sem nome/e-mail/telefone).
+// Guarda só data/hora + métrica + contact_id (sem nome/e-mail/telefone).
 const { pipeline } = require('./_redis');
-const { BLOQUEADOS } = require('./_config');
+const { BLOQUEADOS, diaDe } = require('./_config');
 
 const METRICAS = [
   'pam_venda',          // compra aprovada do PAM (front)
@@ -12,9 +12,6 @@ const METRICAS = [
   'amanha_consigo',     // clicou "Amanhã Consigo"
   'visita', 'aula', 'pitch', 'oferta', 'clique', 'alh_venda',
 ];
-
-// Dia do webinário: os disparos de 18h do dia anterior até 17:59 do dia contam nesse dia (horário de Brasília).
-const hojeBR = () => new Date(Date.now() + 6 * 3600e3).toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -37,14 +34,24 @@ module.exports = async (req, res) => {
 
   if (BLOQUEADOS.includes(String(id))) return res.status(200).json({ ok: true, ignorado: 'contato de teste' });
 
-  const data = /^\d{4}-\d{2}-\d{2}$/.test(q.data || b.data || '') ? (q.data || b.data) : hojeBR();
+  const manual = /^\d{4}-\d{2}-\d{2}$/.test(q.data || b.data || '') ? (q.data || b.data) : null;
 
   try {
-    const [novo] = await pipeline([
-      ['SADD', `ev:${data}:${metrica}`, String(id)],
-      ['SADD', 'dias', data],
+    if (manual) {
+      // carga retroativa com data explícita (sem hora)
+      const [novo] = await pipeline([
+        ['SADD', `ev:${manual}:${metrica}`, String(id)],
+        ['SADD', 'dias', manual],
+      ]);
+      return res.status(200).json({ ok: true, data: manual, metrica, novo: novo === 1 });
+    }
+    // evento ao vivo: guarda a hora; o dia é decidido na leitura
+    const agora = Date.now();
+    await pipeline([
+      ['ZADD', `evt:${metrica}`, String(agora), `${id}|${agora}`],
+      ['SETNX', 'corte_ts', String(agora)],
     ]);
-    return res.status(200).json({ ok: true, data, metrica, novo: novo === 1 });
+    return res.status(200).json({ ok: true, data: diaDe(agora), metrica, registrado: true });
   } catch (e) {
     return res.status(500).json({ ok: false, erro: e.message });
   }
