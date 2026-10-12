@@ -78,8 +78,9 @@
       <div class="sub"><span id="periodLabel"></span> · <span id="live">conectando…</span></div>
     </div>
     <div class="filters">
-      <button class="chip on" data-p="today">Hoje</button>
       <button class="chip" data-p="yesterday">Ontem</button>
+      <button class="chip on" data-p="today">Hoje</button>
+      <button class="chip" data-p="tomorrow">Amanhã</button>
       <button class="chip" data-p="7">7 dias</button>
       <button class="chip" data-p="30">30 dias</button>
       <button class="chip" data-p="all">Tudo</button>
@@ -143,7 +144,8 @@ const METRICS=[
 const DISP=['enviadas','confirmou'];
 const KEY='webinario_dash_v1';
 const iso=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*6e4);return z.toISOString().slice(0,10)};
-// Dia = data do calendário em Brasília (vira à meia-noite).
+// Hoje = data do calendário em Brasília. Cada chave dos dados é o dia do webinário:
+// os disparos dele saem das 18h do dia anterior até as 18h do próprio dia.
 const TODAY=new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
 const fmt=n=>n.toLocaleString('pt-BR');
 const pct=(a,b)=>b?((a/b)*100).toFixed(1).replace('.',',')+'%':'—';
@@ -186,6 +188,7 @@ async function carregar(){
 
 let period='today';
 const addDays=(s,n)=>{const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return iso(d)};
+const TOMORROW=addDays(TODAY,1);
 
 function range(){
   if(period==='today'){
@@ -193,6 +196,7 @@ function range(){
     const last=Object.keys(data).filter(d=>d<=TODAY).sort().pop()||TODAY;
     return[last,last];
   }
+  if(period==='tomorrow')return[TOMORROW,TOMORROW];
   if(period==='yesterday'){const y=addDays(TODAY,-1);return[y,y]}
   if(period==='7')return[addDays(TODAY,-6),TODAY];
   if(period==='30')return[addDays(TODAY,-29),TODAY];
@@ -211,7 +215,7 @@ function totals(a,b){
 function render(){
   const[a,b]=range();
   const{t,days}=totals(a,b);
-  $('periodLabel').textContent=(a===b?(period==='today'?(a===TODAY?'Hoje · ':'Hoje · último dado de '):'')+br(a):br(a)+' → '+br(b))+' · '+days.length+' dia(s) com dados';
+  $('periodLabel').textContent=(a===b?(period==='today'?(a===TODAY?'Hoje · ':'Hoje · último dado de '):period==='tomorrow'?'Amanhã · disparos desde hoje 18h · ':'')+br(a):br(a)+' → '+br(b))+' · '+days.length+' dia(s) com dados';
 
   // cards
   const pc2=t=>{const b=days.reduce((n,d)=>n+(fechado(data[d])?(+data[d].enviadas||0):0),0);return b?pct(t.vendas,b):'—'};
@@ -257,7 +261,7 @@ function render(){
   $('tot').innerHTML=[['Compradores PAM (total)',fmt(tp),0],['Vendas ALH (total)',fmt(ta),0],['Conversão geral',pct(ta,tp),1]]
     .map(c=>`<div class="card ${c[2]?'hero':''}"><div class="lb">${c[0]}</div><div class="v">${c[1]}</div></div>`).join('');
   $('tbody').innerHTML=all.map(d=>{
-    const x=data[d];return`<tr><td>${br(d)}${d===TODAY?' · hoje':''}</td><td>${fmt(+x.enviadas||0)}</td><td>${fmt(+x.vendas||0)}</td><td>${fechado(x)?pct(+x.vendas||0,+x.enviadas||0):'—'}</td></tr>`;
+    const x=data[d];return`<tr><td>${br(d)}${d===TODAY?' · hoje':d===TOMORROW?' · amanhã':''}</td><td>${fmt(+x.enviadas||0)}</td><td>${fmt(+x.vendas||0)}</td><td>${fechado(x)?pct(+x.vendas||0,+x.enviadas||0):'—'}</td></tr>`;
   }).join('');
 
   spark(all.slice(0,14).reverse());
