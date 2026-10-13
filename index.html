@@ -101,7 +101,7 @@
 
   <div class="section">
     <h2>Conversões</h2>
-    <div class="grid" id="conv" style="grid-template-columns:repeat(4,1fr)"></div>
+    <div class="grid" id="conv" style="grid-template-columns:repeat(5,1fr)"></div>
   </div>
 
   <div class="section">
@@ -240,6 +240,7 @@ function render(){
   const cv=[
     ['PAM → ALH (geral)',pc.ok?pct(t.vendas,pc.pam):'—',pc.ok?`${fmt(t.vendas)} de ${fmt(pc.pam)} compradores PAM`:'aguardando dados da aula',1],
     ['PAM → Presença',pct(t.confirmou,t.enviadas),`${fmt(t.confirmou)} de ${fmt(t.enviadas)}`],
+    ['Presença → Aula',pct(t.aula,t.confirmou),`${fmt(t.aula)} na aula de ${fmt(t.confirmou)} que confirmaram`],
     ['Aula → Oferta',pct(t.oferta,t.aula),`${fmt(t.oferta)} de ${fmt(t.aula)}`],
     ['Oferta → Venda ALH',pct(t.vendas,t.oferta),`${fmt(t.vendas)} de ${fmt(t.oferta)}`]
   ];
