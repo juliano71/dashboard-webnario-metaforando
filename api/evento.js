@@ -47,10 +47,7 @@ module.exports = async (req, res) => {
     }
     // evento ao vivo: guarda a hora; o dia é decidido na leitura
     const agora = Date.now();
-    await pipeline([
-      ['ZADD', `evt:${metrica}`, String(agora), `${id}|${agora}`],
-      ['SETNX', 'corte_ts', String(agora)],
-    ]);
+    await pipeline([['ZADD', `evt:${metrica}`, String(agora), `${id}|${agora}`]]);
     return res.status(200).json({ ok: true, data: diaDe(agora), metrica, registrado: true });
   } catch (e) {
     return res.status(500).json({ ok: false, erro: e.message });
