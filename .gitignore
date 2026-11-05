@@ -2,3 +2,6 @@
 node_modules/
 .vercel/
 *.csv
+sales_history_*
+*.xls
+*.xlsx
